@@ -8,12 +8,16 @@ package com.farrel.springsecurityjwt.security;
  * permission to access a resource.
  */
 
+import com.farrel.springsecurityjwt.filter.CustomAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -65,14 +69,38 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     /*
-    * By default, Spring using a session policy that was stateful
+    * By default, Spring using a session policy that was stateful. So Spring will save something
+    * in memory, tracking the users by giving them a cookie (that's why spring generate random
+    * password). But we don't want to use this system. We will use Json Web Token system. When
+    * the user logged in, we give them a token, and we don't keep track of the user with no cookies
+    * or anything like that. The way we configure this is by configuring the HttpSecurity.
      */
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 //        super.configure(http);
+
+        // The first thing to configure the HttpSecurity is to disable cross site request forgery.
+        http.csrf().disable();
+
+        // to specify stateless
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        // we're going to allow everyone to be able to access this app at this point
+        http.authorizeRequests().anyRequest().permitAll();
+
         /*
-        * disable cross site request forgery
+        * we need authentication filter so that we can check the user whenever they're
+        * trying to log in. we're going to pass a null because we don't have any filter yet.
+        * Therefore, w're going to create CustomAuthenticationFilter class that extends
+        * UsernamePasswordAuthenticationFilter
          */
-        http.csrf().disable()
+        // http.addFilter(null);
+        http.addFilter(new CustomAuthenticationFilter(authenticationManagerBean()));
+    }
+
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
     }
 }
