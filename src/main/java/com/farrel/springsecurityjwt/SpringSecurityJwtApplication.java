@@ -10,12 +10,19 @@ import com.farrel.springsecurityjwt.models.Role;
 import com.farrel.springsecurityjwt.models.User;
 import com.farrel.springsecurityjwt.services.UserService;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @SpringBootApplication
 public class SpringSecurityJwtApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SpringSecurityJwtApplication.class, args);
+	}
+
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
 	}
 
 	@Bean
@@ -40,10 +47,4 @@ public class SpringSecurityJwtApplication {
 			userService.addRoleToUser("putra", "ROLE_USER");
 		};
 	}
-
-	/*
-	* authentication meaning who.
-	* authorization meaning what they can access in the application and we're gonna control that using the role.
-	*/
-
 }
