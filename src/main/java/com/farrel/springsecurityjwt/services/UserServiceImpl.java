@@ -19,7 +19,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor // this will going to create a constructor and then make sure all of the userRepo and roleRepo are passed into this constructor (dependency injection)
+@RequiredArgsConstructor // this will be going to create a constructor and then make sure all the userRepo and roleRepo are passed into this constructor (dependency injection)
 @Transactional
 @Slf4j // to logging things out as we're using this class, so that we can see what is going on in the log
 public class UserServiceImpl implements UserService, UserDetailsService {
@@ -43,9 +43,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         * Then we need to return Spring Security user, and pass username, password, authorities
          */
         Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        user.getRoles().forEach(role -> {
-            authorities.add(new SimpleGrantedAuthority(role.getName()));
-        });
+        user.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getName())));
         return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), authorities);
     }
 

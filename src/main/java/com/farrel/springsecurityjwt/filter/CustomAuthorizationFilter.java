@@ -44,7 +44,7 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // check to see if this is not the login path, because I don't want to do anything and let it go through
-        if (request.getServletPath().equals("/api/login")) {
+        if (request.getServletPath().equals("/api/login") || request.getServletPath().equals("/api/token/refresh")) {
             filterChain.doFilter(request, response);
         } else {
             /*
@@ -60,12 +60,12 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
              */
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
                 try {
-                    // get the token by calling substringm then pass how manyletters we want to remove
+                    // get the token by calling substring then pass how many letters we want to remove
                     String token = authorizationHeader.substring("Bearer ".length());
                     Algorithm algorithm = Algorithm.HMAC256("secret".getBytes());
 
                     /*
-                    * to create the verifier, we need the algorithm with the same scret that we use
+                    * to create the verifier, we need the algorithm with the same secret that we use
                     * to encode the token. Then pass the algorithm to the verifier.
                     */
                     JWTVerifier verifier = JWT.require(algorithm).build();
@@ -85,9 +85,7 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
                     * Spring security expecting as the rules of the user
                      */
                     Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-                    stream(roles).forEach(role -> {
-                        authorities.add(new SimpleGrantedAuthority(role));
-                    });
+                    stream(roles).forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
 
                     UsernamePasswordAuthenticationToken authenticationToken =
                             new UsernamePasswordAuthenticationToken(username, null, authorities);
