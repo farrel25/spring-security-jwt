@@ -9,6 +9,7 @@ package com.farrel.springsecurityjwt.security;
  */
 
 import com.farrel.springsecurityjwt.filter.CustomAuthenticationFilter;
+import com.farrel.springsecurityjwt.filter.CustomAuthorizationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
@@ -132,6 +134,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         // http.addFilter(null);
         // http.addFilter(new CustomAuthenticationFilter(authenticationManagerBean()));
         http.addFilter(customAuthenticationFilter);
+
+        /*
+        * We need to make sure that this filter comes before the other filters, because
+        * we need to intercept every request before any other filters. And then I want to
+        * tell it what it's for which means UsernamePasswordAuthenticationFilter.
+         */
+        http.addFilterBefore(new CustomAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
     }
 
     @Bean

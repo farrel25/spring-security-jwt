@@ -4,7 +4,10 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,16 +20,21 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.Arrays.stream;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 
 /*
 * After we're able to give the user an access and refresh token when they log in successfully.
 * Next, we need to be able to take those token from the user, verify the token, and give them
 * access to the app after we verify that the token is valid. To do that, we need this
 * CustomAuthorizationFilter class that is going to intercept every request that comes into the
-* app.
+* app. After that, we need to add this CustomAuthorizationFilter class into our security
+* configuration class
  */
+@Slf4j
 public class CustomAuthorizationFilter extends OncePerRequestFilter {
 
     /*
@@ -92,7 +100,24 @@ public class CustomAuthorizationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
                     filterChain.doFilter(request, response);
                 } catch (Exception e) {
+                    /*
+                    * Let's say the token was not valid, we weren't able to verify it, or it expires,
+                    * or something like that. So we need send something to the user so that they know
+                    * what happens
+                     */
+                    log.error("Error logging in: {}", e.getMessage());
+                    response.setHeader("error", e.getMessage());
+                    response.setStatus(FORBIDDEN.value());
+                    // response.sendError(FORBIDDEN.value());
+                    // response.sendError(FORBIDDEN.value(), FORBIDDEN.getReasonPhrase());
 
+                    // instead of setting headers as above, I want to actually send something in the response body
+                    Map<String, String> error = new HashMap<>();
+                    error.put("error_message", e.getMessage());
+
+                    // I want this to be json. So we're going to use MediaType.APPLICATION_JSON_VALUE
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    new ObjectMapper().writeValue(response.getOutputStream(), error);
                 }
             } else {
                 filterChain.doFilter(request, response);
