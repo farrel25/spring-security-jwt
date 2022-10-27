@@ -2,7 +2,9 @@ package com.farrel.springsecurityjwt.filter;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,13 +19,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     /*
-    * we need to bring the authentication manager because we're gonna be
+    * we need to bring the authentication manager because we're going to be
     * calling the authentication manager to authenticate the user and
     * inject it in this class.
      */
@@ -69,7 +73,7 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) throws IOException, ServletException {
 //        super.successfulAuthentication(request, response, chain, authResult);
 
-        // to get the user that's been succesfully logged in
+        // to get the user that's been successfully logged in
         // because getPrincipal returning an object, it will show error. So we need to do some casting
         User user = (User) authentication.getPrincipal();
 
@@ -98,8 +102,17 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
                 .withIssuer(request.getRequestURL().toString())
                 .sign(algorithm);
 
-        // use the response too send those to the user in the front end
-        response.setHeader("access_token", access_token);
-        response.setHeader("refresh_token", refresh_token);
+        // use the response to send those to the user in the front end
+        // response.setHeader("access_token", access_token);
+        // response.setHeader("refresh_token", refresh_token);
+
+        // instead of setting headers as above, I want to actually send something in the response body
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("access_token", access_token);
+        tokens.put("refresh_token", refresh_token);
+
+        // I want this to be json. So we're going to use MediaType.APPLICATION_JSON_VALUE
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        new ObjectMapper().writeValue(response.getOutputStream(), tokens);
     }
 }

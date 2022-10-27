@@ -4,7 +4,7 @@ package com.farrel.springsecurityjwt.security;
  * authentication meaning who. Verifies who you are who you say you are.
  *
  * authorization meaning what they can access in the application, and
- * we're going to control that using the role. It will decides if you have
+ * we're going to control that using the role. It will decide if you have
  * permission to access a resource.
  */
 
@@ -21,6 +21,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor // I'm going to be doing some dependency injection, so we can use this annotation from lombok
@@ -33,7 +36,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     /*
     * Because we have @RequiredArgsConstructor annotation from lombok.
     * The annotation is going to create a constructor for us on the fly
-    * and then inject this interface object inside of the constructor,
+    * and then inject this interface object inside the constructor,
     * and this will be the way we do our dependency injection.
     *
     * we need to create 2 beans for these 2 dependencies injection in
@@ -53,7 +56,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //        super.configure(auth);
         /*
         * there are many ways to look for the users.
-        * The first one is in memory, and then i pass in username and password
+        * The first one is in memory, and then I pass in username and password
         * so that spring can use to check for users when users are trying to log into the application.
         *
         * And I can also use JDBC authentication. So I can create service class and then passing all
@@ -79,23 +82,56 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
 //        super.configure(http);
 
+        // configuration of customized login path
+        CustomAuthenticationFilter customAuthenticationFilter = new CustomAuthenticationFilter(authenticationManagerBean());
+        customAuthenticationFilter.setFilterProcessesUrl("/api/login");
+
         // The first thing to configure the HttpSecurity is to disable cross site request forgery.
         http.csrf().disable();
 
         // to specify stateless
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
+        /*
+        * Btw, the order of http configuration is matters.
+        * If we want to allow certain path, we can to do something like this.
+        * Pass whatever path that we don't want to secure. Then permit all.
+        * Btw, Spring is already taken care of login path because you can see
+        * that login path is not defined in our controller. But if you want to
+        * see where login path is coming from, just open UsernamePasswordAuthenticationFilter
+        * class that we extend it inside CustomAuthenticationFilter, then you
+        * will see "/login" inside DEFAULT_ANT_PATH_REQUEST_MATCHER. And if you
+        * want to change that, we can actually override it with our own custom
+        * authentication filter. Look at the top of this body method for the
+        * configuration of customized login path.
+         */
+        // http.authorizeRequests().antMatchers("/login").permitAll();
+        http.authorizeRequests().antMatchers("/api/login/**").permitAll();
+
+        // if someone access /api/user/** and everything after that (/user/...), then they need to have user role
+        http.authorizeRequests().antMatchers(GET, "/api/users/**").hasAnyAuthority("ROLE_USER");
+
+        http.authorizeRequests().antMatchers(POST, "/api/users/save/**").hasAnyAuthority("ROLE_ADMIN");
+
         // we're going to allow everyone to be able to access this app at this point
-        http.authorizeRequests().anyRequest().permitAll();
+//        http.authorizeRequests().anyRequest().permitAll();
+
+        /*
+        * But we don't want to do permitAll(), because it means that we just throw our security out of the window.
+        * We want to do authenticate, so we want everyone to be authenticated
+         */
+        http.authorizeRequests().anyRequest().authenticated();
+
 
         /*
         * we need authentication filter so that we can check the user whenever they're
         * trying to log in. we're going to pass a null because we don't have any filter yet.
-        * Therefore, w're going to create CustomAuthenticationFilter class that extends
+        * Therefore, we're going to create CustomAuthenticationFilter class that extends
         * UsernamePasswordAuthenticationFilter
          */
         // http.addFilter(null);
-        http.addFilter(new CustomAuthenticationFilter(authenticationManagerBean()));
+        // http.addFilter(new CustomAuthenticationFilter(authenticationManagerBean()));
+        http.addFilter(customAuthenticationFilter);
     }
 
     @Bean
